@@ -17,10 +17,6 @@ const curChat = computed(() => chatsStore.getCurrentActiveChat)
 
 const setChat = (name:string) => {
   chatsStore.setCurrentActiveChat(name)
-
-  if (isMinimized.value) {
-    userMinimized.value = false
-  }
 }
 
 const userMinimized = ref<Boolean>(false)
@@ -35,7 +31,6 @@ const isMinimized = computed(() => {
 })
 
 const toggleMinimized = () => {
-  console.log('???')
   userMinimized.value = !userMinimized.value
 }
 
@@ -113,7 +108,15 @@ onUnmounted(() => {
                 <q-avatar color="primary" text-color="white">
                   {{ chat.name.charAt(0) }}
                 </q-avatar>
-                <span class="q-ml-sm">{{ chat.name }}</span>
+                <div class="chat-details q-ml-sm">
+                  <div class="chat-name">{{ chat.name }}</div>
+                  <div class="chat-last-message" v-if="chat.lastMsg?.message">
+                    {{ chat.lastMsg?.message}}
+                  </div>
+                  <div class="chat-last-message text-grey-6" v-else>
+                    No messages yet
+                  </div>
+                </div>
               </div>
               <q-badge
                 v-if="chat.unreadCount && chat.unreadCount > 0"
@@ -255,7 +258,32 @@ onUnmounted(() => {
 
 .chat-item-content {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  width: calc(100% - 30px);
+}
+
+.chat-details {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100%;
+  max-width:180px;
+}
+
+.chat-name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chat-last-message {
+  font-size: 0.8rem;
+  color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .chat-item:hover {
@@ -279,7 +307,7 @@ onUnmounted(() => {
 }
 
 .unread-badge {
-  margin-left: 8px;
-  margin-right: auto;
+  margin-right:10px;
+  margin-top:10px;
 }
 </style>

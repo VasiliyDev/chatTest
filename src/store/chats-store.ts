@@ -83,12 +83,11 @@ export const useChatsStore = defineStore('chat', () => {
 
 
   const setCurrentActiveChat = (name:string | undefined | null) => {
-
     currentActiveChat.value = name;
   }
 
   const getChatByName = (name: string) => {
-    return  chats.value.find(chat => chat.name === name)
+    return chats.value.find(chat => chat.name === name)
   }
 
   const getCurrentActiveChat = computed(()=> {
@@ -98,19 +97,33 @@ export const useChatsStore = defineStore('chat', () => {
   })
 
   const chatsList = computed(() => {
-    return chats.value.map(chat => {
-      const unreadCount = chat.messages.filter(message => message.new).length
+
+    const chatItems = chats.value.map(chat => {
+      const lastMessage = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null;
+      const unreadCount = chat.messages.filter(message => message.new).length;
+
+
+      const lastOwnMessage = [...chat.messages].reverse().find(message => message.own);
 
       return {
         name: chat.name,
-        lastMsg: chat.messages[chat.messages.length - 1],
-        unreadCount: unreadCount
+        lastMsg: lastMessage,
+        unreadCount: unreadCount,
+        lastOwnMessageDate: lastOwnMessage ? lastOwnMessage.createdAt : null,
+      };
+    });
+
+    return chatItems.sort((a, b) => {
+      if (a.lastOwnMessageDate && b.lastOwnMessageDate) {
+        return b.lastOwnMessageDate.getTime() - a.lastOwnMessageDate.getTime();
       }
-    })
-  })
 
+      if (a.lastOwnMessageDate && !b.lastOwnMessageDate) return -1;
+      if (!a.lastOwnMessageDate && b.lastOwnMessageDate) return 1;
 
-
+      return 0;
+    });
+  });
 
   return {
     chats,
@@ -121,6 +134,5 @@ export const useChatsStore = defineStore('chat', () => {
     getChatByName,
     getCurrentActiveChat,
     chatsList,
-
   }
 })
