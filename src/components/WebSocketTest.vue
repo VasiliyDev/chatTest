@@ -111,6 +111,7 @@ onUnmounted(() => {
                 <div class="chat-details q-ml-sm">
                   <div class="chat-name">{{ chat.name }}</div>
                   <div class="chat-last-message" v-if="chat.lastMsg?.message">
+                    {{chat.lastMsg?.own ? "You" : chat.name}}:
                     {{ chat.lastMsg?.message}}
                   </div>
                   <div class="chat-last-message text-grey-6" v-else>
