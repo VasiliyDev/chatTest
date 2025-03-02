@@ -1,7 +1,65 @@
+<script setup lang="ts">
+import {computed, nextTick, onMounted, ref, watch} from 'vue'
+import {useChatsStore} from "src/store/chats-store"
+
+
+const chatsStore = useChatsStore()
+
+
+const currentChat = computed(() => chatsStore.getCurrentActiveChat)
+const chatName = computed(() => {
+  if (!currentChat?.value?.name) return null
+  return currentChat.value.name
+})
+
+
+const newMessage = ref('')
+const messagesContainer = ref<HTMLElement | null>(null)
+const messageInput = ref<HTMLElement | null>(null)
+
+
+watch(() => currentChat?.value?.messages.length, async () => {
+
+  await nextTick()
+  scrollToBottom()
+
+})
+
+const scrollToBottom = () => {
+  if (messagesContainer.value) {
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
+  }
+}
+
+
+const formatTime = (date: Date) => {
+  if (!date) return ''
+  return typeof date === 'string' ? new Date(date) : date
+}
+
+
+const sendMessage = () => {
+  if (!newMessage.value.trim() || !chatName.value) return
+
+  chatsStore.sendMessage(chatName.value, newMessage.value)
+  newMessage.value = ''
+
+  if (messageInput.value)
+    messageInput.value.focus()
+
+}
+
+
+onMounted(() => {
+  if (chatName.value) {
+    chatsStore.markMessagesAsRead(chatName.value)
+  }
+  scrollToBottom()
+})
+</script>
 <template>
   <div class="chat-container q-pa-md" v-if="currentChat">
 
-    <!-- Chat messages area -->
     <div class="chat-messages q-mb-md" ref="messagesContainer">
       <template v-for="(message, index) in currentChat?.messages" :key="index">
         <div
@@ -21,7 +79,7 @@
       </template>
     </div>
 
-    <!-- Message input area -->
+
     <q-form @submit="sendMessage" class="message-input-container">
       <div class="row">
         <div class="col">
@@ -52,72 +110,6 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
-import { useScroll } from '@vueuse/core'
-import { useChatsStore } from "src/store/chats-store"
-
-
-const chatsStore = useChatsStore()
-
-
-const currentChat = computed(() => chatsStore.getCurrentActiveChat)
-const chatName = computed(() => {
-  if (!currentChat?.value?.name) return null
-  return currentChat.value.name
-})
-
-
-const newMessage = ref('')
-const messagesContainer = ref<HTMLElement | null>(null)
-const messageInput = ref(null)
-
-
-const { y, isScrolling } = useScroll(messagesContainer)
-
-
-watch(() => currentChat?.value?.messages.length, async () => {
-  if (!isScrolling.value) {
-    await nextTick()
-    scrollToBottom()
-  }
-})
-
-const scrollToBottom = () => {
-  if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
-  }
-}
-
-
-const formatTime = (date: Date) => {
-  if (!date) return ''
-
-  const messageDate = typeof date === 'string' ? new Date(date) : date
-  return messageDate
-}
-
-
-const sendMessage = () => {
-  if (!newMessage.value.trim() || !chatName.value) return
-
-  chatsStore.sendMessage(chatName.value, newMessage.value)
-  newMessage.value = ''
-
-  if (messageInput.value) {
-    ;(messageInput.value as any).focus()
-  }
-}
-
-
-
-onMounted(() => {
-  if (chatName.value) {
-    chatsStore.markMessagesAsRead(chatName.value)
-  }
-  scrollToBottom()
-})
-</script>
 
 <style scoped>
 .chat-container {

@@ -1,71 +1,75 @@
-import { ref } from 'vue'
-import {useChatsStore} from "src/store/chats-store";
+import {ref} from 'vue'
 
 interface Message {
-    from: string
-    message: string
+  from: string
+  message: string
 }
 
 
+const TIMEOUT_DELAY = 3000;
 
 interface MessagePayload {
-    message: Message
+  message: Message
 }
 
 export const useWebSocketService = () => {
-    const socket = ref<WebSocket | null>(null)
-    const isConnected = ref(false)
-    const messages = ref<Message[]>([])
-    const lastError = ref<string>('')
+  const socket = ref<WebSocket | null>(null)
+  const isConnected = ref(false)
+  const messages = ref<Message[]>([])
+  const lastError = ref<string>('')
 
-    const connect = () => {
+  const socketHandlers = ref<((payload: MessagePayload) => void)[]>([])
+  const addSocketHandler = (func: (payload: MessagePayload) => void) => {
+    socketHandlers.value.push(func);
+  }
+  const connect = () => {
+    try {
+      socket.value = new WebSocket('ws://localhost:8181/ws')
+      socket.value.onopen = () => {
+        isConnected.value = true
+        lastError.value = ''
+      }
+
+      socket.value.onmessage = (event) => {
         try {
-            socket.value = new WebSocket('ws://localhost:8181/ws')
-            socket.value.onopen = () => {
-                isConnected.value = true
-                lastError.value = ''
-            }
-
-            socket.value.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data)
-                    if ('message' in data) {
-                        const msg= data as MessagePayload
-                        const chatStore = useChatsStore()
-                        chatStore.handleNewMessage(msg.message.from, msg.message.message)
-                    }
-                } catch (e) {
-                    console.error('Failed to parse message:', e)
-                }
-            }
-
-            socket.value.onclose = () => {
-                isConnected.value = false
-                   setTimeout(connect, 3000)
-            }
-
-            socket.value.onerror = (error) => {
-                lastError.value = 'WebSocket error'
-                console.error('WebSocket error:', error)
-            }
+          const data = JSON.parse(event.data)
+          if ('message' in data) {
+            const msg = data as MessagePayload
+            socketHandlers.value.forEach(handler => handler(msg));
+          }
         } catch (e) {
-            lastError.value = 'Failed to connect'
-            console.error('Connection setup failed:', e)
+          console.error('Failed to parse message:', e)
         }
-    }
+      }
 
-    const disconnect = () => {
-        if (socket.value && isConnected.value) {
-            socket.value.close()
-            isConnected.value = false
-        }
-    }
+      socket.value.onclose = () => {
+        isConnected.value = false
+        setTimeout(connect, TIMEOUT_DELAY)
+      }
 
-    return {
-        connect,
-        disconnect,
-        isConnected,
-        messages,
-        lastError
+      socket.value.onerror = (error) => {
+        lastError.value = 'WebSocket error'
+        console.error('WebSocket error:', error)
+      }
+    } catch (e) {
+      lastError.value = 'Failed to connect'
+      console.error('Connection setup failed:', e)
     }
+  }
+
+  const disconnect = () => {
+    if (socket.value && isConnected.value) {
+      socket.value.close()
+      isConnected.value = false
+    }
+  }
+
+  return {
+    connect,
+    disconnect,
+    isConnected,
+    messages,
+    lastError,
+    addSocketHandler
+  }
 }

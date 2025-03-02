@@ -4,13 +4,15 @@ import {useWebSocketService} from 'src/services/websocket'
 import {useChatsStore} from "src/store/chats-store";
 import SingleChatComponent from "components/SingleChatComponent.vue";
 import {screenSize} from "src/helpers/screen-size";
+import {storeToRefs} from "pinia";
 
 const chatsStore = useChatsStore()
 const {
   connect,
   disconnect,
   isConnected,
-  lastError
+  lastError,
+  addSocketHandler
 } = useWebSocketService()
 
 const curChat = computed(() => chatsStore.getCurrentActiveChat)
@@ -34,6 +36,24 @@ const toggleMinimized = () => {
   userMinimized.value = !userMinimized.value
 }
 
+const {chatsList} = storeToRefs(chatsStore)
+
+const sortedChats = computed(() => {
+  const chatsForSorting = [...chatsList.value];
+  return chatsForSorting.sort((a, b) => {
+    if (a.lastOwnMessageDate && b.lastOwnMessageDate) {
+      return b.lastOwnMessageDate.getTime() - a.lastOwnMessageDate.getTime();
+    }
+
+    if (a.lastOwnMessageDate && !b.lastOwnMessageDate) return -1;
+    if (!a.lastOwnMessageDate && b.lastOwnMessageDate) return 1;
+
+    return 0;
+  });
+})
+addSocketHandler((msg)=>{
+  chatsStore.handleNewMessage(msg.message.from, msg.message.message)
+})
 
 
 
@@ -98,7 +118,7 @@ onUnmounted(() => {
 
           <q-scroll-area class="chat-scroll-area">
             <q-card-section
-              v-for="chat in chatsStore.chatsList"
+              v-for="chat in sortedChats"
               :key="chat.name"
               class="chat-item"
               :class="{ 'active-chat': curChat?.name === chat.name }"

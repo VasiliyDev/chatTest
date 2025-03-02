@@ -1,5 +1,5 @@
-import { defineStore } from 'pinia';
-import {ref, computed, watch} from 'vue';
+import {defineStore} from 'pinia';
+import {computed, ref, watch} from 'vue';
 
 export interface Message {
   own: boolean,
@@ -92,13 +92,12 @@ export const useChatsStore = defineStore('chat', () => {
 
   const getCurrentActiveChat = computed(()=> {
     if (!currentActiveChat.value) return null
-    const activeChat = getChatByName(currentActiveChat.value)
-    return activeChat
+    return getChatByName(currentActiveChat.value)
   })
 
   const chatsList = computed(() => {
 
-    const chatItems = chats.value.map(chat => {
+     return chats.value.map(chat => {
       const lastMessage = chat.messages.length > 0 ? chat.messages[chat.messages.length - 1] : null;
       const unreadCount = chat.messages.filter(message => message.new).length;
 
@@ -113,16 +112,7 @@ export const useChatsStore = defineStore('chat', () => {
       };
     });
 
-    return chatItems.sort((a, b) => {
-      if (a.lastOwnMessageDate && b.lastOwnMessageDate) {
-        return b.lastOwnMessageDate.getTime() - a.lastOwnMessageDate.getTime();
-      }
 
-      if (a.lastOwnMessageDate && !b.lastOwnMessageDate) return -1;
-      if (!a.lastOwnMessageDate && b.lastOwnMessageDate) return 1;
-
-      return 0;
-    });
   });
 
   return {
